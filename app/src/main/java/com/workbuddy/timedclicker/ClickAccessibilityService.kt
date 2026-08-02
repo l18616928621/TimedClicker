@@ -41,7 +41,6 @@ class ClickAccessibilityService : AccessibilityService() {
     }
 
     override fun onInterrupt() {
-        super.onInterrupt()
         Log.d(TAG, "onInterrupt")
     }
 

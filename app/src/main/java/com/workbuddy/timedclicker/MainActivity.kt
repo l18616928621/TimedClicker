@@ -47,9 +47,9 @@ class MainActivity : AppCompatActivity() {
     /** 从 SharedPreferences 恢复日志 */
     private fun loadLogs() {
         val pref = getSharedPreferences("timed_clicker", Context.MODE_PRIVATE)
-        val saved = pref.getString("log_entries", null)
-        if (saved != null) {
-            logEntries.addAll(saved.split("\n"))
+        val saved: String? = pref.getString("log_entries", null)
+        if (saved != null && saved.isNotEmpty()) {
+            logEntries.addAll(saved.split("\n".toRegex()))
         }
     }
 

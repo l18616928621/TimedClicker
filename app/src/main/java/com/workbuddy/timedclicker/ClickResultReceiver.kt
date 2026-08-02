@@ -5,6 +5,7 @@ import android.content.Context
 import android.content.Intent
 import android.util.Log
 import java.text.SimpleDateFormat
+import java.util.ArrayList
 import java.util.Date
 import java.util.Locale
 
@@ -44,10 +45,15 @@ class ClickResultReceiver : BroadcastReceiver() {
 
         // 持久化到 SharedPreferences
         val pref = context.getSharedPreferences("timed_clicker", Context.MODE_PRIVATE)
-        val saved = pref.getString("log_entries", "")
-        val logs = if (saved.isNullOrEmpty()) mutableListOf<String>() else saved.split("\n").toMutableList()
+        val saved: String? = pref.getString("log_entries", null)
+        val logs = ArrayList<String>()
+        if (saved != null && saved.isNotEmpty()) {
+            logs.addAll(saved.split("\n".toRegex()))
+        }
         logs.add(0, entry)
-        if (logs.size > MAX_LOGS) logs.removeAt(logs.size - 1)
+        if (logs.size > MAX_LOGS) {
+            logs.removeAt(logs.size - 1)
+        }
         pref.edit().putString("log_entries", logs.joinToString("\n")).apply()
     }
 }
