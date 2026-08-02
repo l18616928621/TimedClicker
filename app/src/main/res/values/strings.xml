@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">定时点击器</string>
+    <string name="accessibility_description">定时点击器需要无障碍服务权限，以便在预定时间扫描屏幕上的按钮并自动点击。我们不会收集任何个人信息。</string>
+
+    <!-- 主界面 -->
+    <string name="target_button_label">目标按钮文字</string>
+    <string name="target_button_hint">例如：确定、知道了、允许</string>
+    <string name="target_time_label">点击时间</string>
+    <string name="schedule_button">设置定时</string>
+    <string name="cancel_button">取消定时</string>
+    <string name="click_now_button">立即点击</string>
+    <string name="enable_accessibility">开启无障碍服务</string>
+    <string name="service_status">服务状态</string>
+    <string name="service_running">● 无障碍服务已开启</string>
+    <string name="service_stopped">○ 无障碍服务未开启</string>
+    <string name="task_scheduled">✅ 定时任务已设置：%1$s 点击「%2$s」</string>
+    <string name="task_cancelled">已取消定时任务</string>
+    <string name="task_executed">✅ 已执行点击！目标：「%1$s」</string>
+    <string name="task_no_button">⚠️ 未在屏幕上找到「%1$s」按钮</string>
+    <string name="schedule_error">⚠️ 请先设置时间和目标按钮文字</string>
+    <string name="battery_opt_tip">建议允许忽略电池优化，防止系统杀死定时任务</string>
+    <string name="open_battery_settings">去设置电池优化</string>
+    <string name="test_mode">测试模式</string>
+    <string name="test_scan">扫描屏幕</string>
+</resources>
