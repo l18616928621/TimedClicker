@@ -45,7 +45,7 @@ class ClickResultReceiver : BroadcastReceiver() {
         // 持久化到 SharedPreferences
         val pref = context.getSharedPreferences("timed_clicker", Context.MODE_PRIVATE)
         val saved = pref.getString("log_entries", "")
-        val logs = if (saved.isNullOrEmpty()) mutableListOf() else saved.split("\n").toMutableList()
+        val logs = if (saved.isNullOrEmpty()) mutableListOf<String>() else saved.split("\n").toMutableList()
         logs.add(0, entry)
         if (logs.size > MAX_LOGS) logs.removeAt(logs.size - 1)
         pref.edit().putString("log_entries", logs.joinToString("\n")).apply()
