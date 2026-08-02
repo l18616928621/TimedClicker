@@ -35,7 +35,6 @@ class MainActivity : AppCompatActivity() {
     private lateinit var npMinute: NumberPicker
     private lateinit var npSecond: NumberPicker
     private lateinit var btnSchedule: MaterialButton
-    private lateinit var btnClickNow: MaterialButton
     private lateinit var tvTaskStatus: TextView
     private lateinit var btnCancel: MaterialButton
     private lateinit var cardTaskStatus: androidx.cardview.widget.CardView
@@ -44,6 +43,21 @@ class MainActivity : AppCompatActivity() {
     private val logEntries = mutableListOf<String>()
     private val dateFormat = SimpleDateFormat("HH:mm:ss", Locale.getDefault())
     private var serviceEnabled = false
+
+    /** 从 SharedPreferences 恢复日志 */
+    private fun loadLogs() {
+        val pref = getSharedPreferences("timed_clicker", Context.MODE_PRIVATE)
+        val saved = pref.getString("log_entries", null)
+        if (saved != null) {
+            logEntries.addAll(saved.split("\n"))
+        }
+    }
+
+    /** 持久化日志到 SharedPreferences */
+    private fun saveLogs() {
+        val pref = getSharedPreferences("timed_clicker", Context.MODE_PRIVATE)
+        pref.edit().putString("log_entries", logEntries.joinToString("\n")).apply()
+    }
 
     /** 接收点击结果的广播 */
     private val resultReceiver = object : BroadcastReceiver() {
@@ -78,6 +92,7 @@ class MainActivity : AppCompatActivity() {
         setContentView(R.layout.activity_main)
 
         initViews()
+        loadLogs()
         setupNumberPickers()
         restoreOffsetValue()
         setupListeners()
@@ -110,7 +125,6 @@ class MainActivity : AppCompatActivity() {
         npMinute = findViewById(R.id.npMinute)
         npSecond = findViewById(R.id.npSecond)
         btnSchedule = findViewById(R.id.btnSchedule)
-        btnClickNow = findViewById(R.id.btnClickNow)
         tvTaskStatus = findViewById(R.id.tvTaskStatus)
         btnCancel = findViewById(R.id.btnCancel)
         cardTaskStatus = findViewById(R.id.cardTaskStatus)
@@ -189,27 +203,6 @@ class MainActivity : AppCompatActivity() {
             Toast.makeText(this, "✅ 定时已设置：$timeStr$offsetStr", Toast.LENGTH_SHORT).show()
 
             updateTaskStatus()
-        }
-
-        // 立即点���（测试）
-        btnClickNow.setOnClickListener {
-            if (!serviceEnabled) {
-                Toast.makeText(this, "请先开启无障碍服务", Toast.LENGTH_SHORT).show()
-                return@setOnClickListener
-            }
-
-            val buttonText = etButtonText.text?.toString()?.trim()
-            if (buttonText.isNullOrBlank()) {
-                Toast.makeText(this, "请输入目标按钮文字", Toast.LENGTH_SHORT).show()
-                return@setOnClickListener
-            }
-
-            val serviceIntent = Intent(this, ClickAccessibilityService::class.java).apply {
-                action = ClickAccessibilityService.ACTION_FIND_AND_CLICK
-                putExtra(ClickAccessibilityService.EXTRA_BUTTON_TEXT, buttonText)
-            }
-            startService(serviceIntent)
-            addLog("🔍 手动触发：扫描「$buttonText」...")
         }
 
         // 取消定时
@@ -304,5 +297,6 @@ class MainActivity : AppCompatActivity() {
             logEntries.removeAt(logEntries.size - 1)
         }
         tvLog.text = logEntries.joinToString("\n")
+        saveLogs()
     }
 }
