@@ -37,19 +37,25 @@ class ClickAccessibilityService : AccessibilityService() {
     }
 
     override fun onAccessibilityEvent(event: AccessibilityEvent?) {
-        instance = this
-
-        // 保存服务状态
-        if (event?.eventType == AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED) {
-            saveServiceState(true)
+        try {
+            instance = this
+            if (event?.eventType == AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED) {
+                saveServiceState(true)
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "onAccessibilityEvent 异常: ${e.message}", e)
         }
     }
 
     override fun onServiceConnected() {
-        super.onServiceConnected()
-        instance = this
-        saveServiceState(true)
-        Log.d(TAG, "无障碍服务已连接")
+        try {
+            super.onServiceConnected()
+            instance = this
+            saveServiceState(true)
+            Log.d(TAG, "无障碍服务已连接")
+        } catch (e: Exception) {
+            Log.e(TAG, "onServiceConnected 异常: ${e.message}", e)
+        }
     }
 
     override fun onInterrupt() {
@@ -64,12 +70,17 @@ class ClickAccessibilityService : AccessibilityService() {
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
-        if (intent?.action == ACTION_FIND_AND_CLICK) {
-            val buttonText = intent.getStringExtra(EXTRA_BUTTON_TEXT) ?: "确定"
-            val targetTime = intent.getLongExtra(EXTRA_TARGET_TIME, 0L)
-            findAndClick(buttonText, targetTime)
+        try {
+            if (intent?.action == ACTION_FIND_AND_CLICK) {
+                val buttonText = intent.getStringExtra(EXTRA_BUTTON_TEXT) ?: "确定"
+                val targetTime = intent.getLongExtra(EXTRA_TARGET_TIME, 0L)
+                findAndClick(buttonText, targetTime)
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "onStartCommand 异常: ${e.message}", e)
         }
-        return START_STICKY
+        // 无障碍服务不能用 START_STICKY，会和 MIUI 框架冲突
+        return START_NOT_STICKY
     }
 
     /**
