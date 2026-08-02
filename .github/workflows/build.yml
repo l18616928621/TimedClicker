@@ -22,14 +22,8 @@ jobs:
       - name: Setup Gradle
         uses: gradle/actions/setup-gradle@v3
 
-      - name: Fix gradlew permissions
-        run: chmod +x gradlew
-
-      - name: Regenerate Gradle wrapper (if JAR is broken)
-        run: gradle wrapper --gradle-version 8.5
-
       - name: Build debug APK
-        run: ./gradlew assembleDebug
+        run: gradle assembleDebug
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
