@@ -1,5 +1,16 @@
 <?xml version="1.0" encoding="utf-8"?>
-<adaptive-icon xmlns:android="http://schemas.android.com/apk/res/android">
-    <background android:drawable="@color/ic_launcher_background"/>
-    <foreground android:drawable="@drawable/ic_launcher_foreground"/>
-</adaptive-icon>
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+    <item>
+        <shape android:shape="oval">
+            <solid android:color="#4A90D9"/>
+            <size android:width="48dp" android:height="48dp"/>
+        </shape>
+    </item>
+    <item android:gravity="center">
+        <shape android:shape="oval">
+            <stroke android:width="2dp" android:color="#FFFFFF"/>
+            <solid android:color="@android:color/transparent"/>
+            <size android:width="32dp" android:height="32dp"/>
+        </shape>
+    </item>
+</layer-list>
