@@ -30,6 +30,7 @@ class MainActivity : AppCompatActivity() {
     private lateinit var btnEnableService: MaterialButton
     private lateinit var etButtonText: com.google.android.material.textfield.TextInputEditText
     private lateinit var etOffsetMs: com.google.android.material.textfield.TextInputEditText
+    private lateinit var etPreScanMs: com.google.android.material.textfield.TextInputEditText
     private lateinit var npHour: NumberPicker
     private lateinit var npMinute: NumberPicker
     private lateinit var npSecond: NumberPicker
@@ -104,6 +105,7 @@ class MainActivity : AppCompatActivity() {
         btnEnableService = findViewById(R.id.btnEnableService)
         etButtonText = findViewById(R.id.etButtonText)
         etOffsetMs = findViewById(R.id.etOffsetMs)
+        etPreScanMs = findViewById(R.id.etPreScanMs)
         npHour = findViewById(R.id.npHour)
         npMinute = findViewById(R.id.npMinute)
         npSecond = findViewById(R.id.npSecond)
@@ -163,6 +165,7 @@ class MainActivity : AppCompatActivity() {
             val minute = npMinute.value
             val second = npSecond.value
             val offsetMs = etOffsetMs.text?.toString()?.toIntOrNull() ?: 0
+            val preScanMs = etPreScanMs.text?.toString()?.toIntOrNull() ?: 2000
 
             // 请求电池优化白名单
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
@@ -172,15 +175,17 @@ class MainActivity : AppCompatActivity() {
                 }
             }
 
-            AlarmReceiver.schedule(this, hour, minute, second, buttonText, offsetMs)
+            AlarmReceiver.schedule(this, hour, minute, second, buttonText, offsetMs, preScanMs)
 
             // 单独持久化提前量，方便下次打开自动填入
             getSharedPreferences("timed_clicker", Context.MODE_PRIVATE).edit()
-                .putInt("task_offset_ms", offsetMs).apply()
+                .putInt("task_offset_ms", offsetMs)
+                .putInt("task_prescan_ms", preScanMs)
+                .apply()
 
             val timeStr = String.format(Locale.getDefault(), "%02d:%02d:%02d", hour, minute, second)
-            val offsetStr = if (offsetMs != 0) " (提前 ${offsetMs}ms)" else ""
-            addLog("⏰ 已设定时：$timeStr$offsetStr → 点击「$buttonText」")
+            val offsetStr = if (offsetMs != 0) " (时钟补偿 ${offsetMs}ms)" else ""
+            addLog("⏰ 已设定时：$timeStr$offsetStr (提前${preScanMs}ms预扫描) → 点击「$buttonText」")
             Toast.makeText(this, "✅ 定时已设置：$timeStr$offsetStr", Toast.LENGTH_SHORT).show()
 
             updateTaskStatus()
@@ -219,9 +224,11 @@ class MainActivity : AppCompatActivity() {
     private fun restoreOffsetValue() {
         val pref = getSharedPreferences("timed_clicker", Context.MODE_PRIVATE)
         val savedOffset = pref.getInt("task_offset_ms", 0)
+        val savedPreScan = pref.getInt("task_prescan_ms", 2000)
         if (savedOffset != 0) {
             etOffsetMs.setText(savedOffset.toString())
         }
+        etPreScanMs.setText(savedPreScan.toString())
     }
 
     private fun updateServiceStatus() {

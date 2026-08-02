@@ -23,6 +23,7 @@ class ClickAccessibilityService : AccessibilityService() {
         const val TAG = "TimedClicker"
         const val ACTION_FIND_AND_CLICK = "com.workbuddy.timedclicker.FIND_AND_CLICK"
         const val EXTRA_BUTTON_TEXT = "button_text"
+        const val EXTRA_TARGET_TIME = "target_time"  // 精确目标时间戳（毫秒），0或不传则立即点击
 
         @Volatile
         var instance: ClickAccessibilityService? = null
@@ -65,20 +66,19 @@ class ClickAccessibilityService : AccessibilityService() {
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         if (intent?.action == ACTION_FIND_AND_CLICK) {
             val buttonText = intent.getStringExtra(EXTRA_BUTTON_TEXT) ?: "确定"
-            findAndClick(buttonText)
+            val targetTime = intent.getLongExtra(EXTRA_TARGET_TIME, 0L)
+            findAndClick(buttonText, targetTime)
         }
         return START_STICKY
     }
 
     /**
      * 在主屏幕上查找指定文字的按钮并点击。
-     * 搜索策略：
-     * 1. 精确匹配文字
-     * 2. 包含匹配文字
-     * 3. contentDescription 匹配
-     * 优先找可点击的；如果找到了但不可点击，尝试点它的父节点
+     *
+     * @param targetTime 精确目标时间戳（毫秒）。>0 时：先扫描锁定按钮，然后忙等到 targetTime 再点击。
+     *                   =0 时：立即扫描并点击（手动测试模式）。
      */
-    fun findAndClick(buttonText: String) {
+    fun findAndClick(buttonText: String, targetTime: Long = 0L) {
         val root = rootInActiveWindow
         if (root == null) {
             Log.w(TAG, "无法获取当前窗口根节点")
@@ -121,13 +121,30 @@ class ClickAccessibilityService : AccessibilityService() {
                 targetNode = candidates.first()
             }
 
+            // 提前聚焦目标节点（提高点击成功率）
+            targetNode.performAction(AccessibilityNodeInfo.ACTION_ACCESSIBILITY_FOCUS)
+
             // 获取点击坐标
             val rect = Rect()
             targetNode.getBoundsInScreen(rect)
             val centerX = rect.centerX().toFloat()
             val centerY = rect.centerY().toFloat()
 
-            Log.d(TAG, "找到按钮「$buttonText」，坐标($centerX, $centerY)，准备点击")
+            Log.d(TAG, "找到按钮「$buttonText」，坐标($centerX, $centerY)")
+
+            // 如果指定了精确目标时间，等待到时间再点击
+            if (targetTime > 0) {
+                val waitMs = targetTime - System.currentTimeMillis()
+                if (waitMs > 0) {
+                    Log.d(TAG, "已锁定按钮，等待 ${waitMs}ms 后准时点击...")
+                    // 忙等待（精度 ~1ms），不用 Thread.sleep 避免被系统调度拉长
+                    val deadline = targetTime
+                    while (System.currentTimeMillis() < deadline) {
+                        Thread.yield()
+                    }
+                }
+                Log.i(TAG, "🕐 准时点击！偏差: ${System.currentTimeMillis() - targetTime}ms")
+            }
 
             // 使用手势 API 点击（Android 7+ 支持，比 performAction 更可靠）
             performClick(centerX, centerY, buttonText)

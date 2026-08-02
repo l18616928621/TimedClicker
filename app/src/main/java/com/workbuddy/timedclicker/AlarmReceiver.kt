@@ -27,9 +27,10 @@ class AlarmReceiver : BroadcastReceiver() {
          * @param second 秒 (0-59)
          * @param buttonText 要点击的按钮文字
          * @param offsetMs 提前量补偿（毫秒），正数=提前触发，负数=延后触发
+         * @param preScanMs 预扫描提前量（毫秒），闹钟提前触发用以扫描锁定按钮，到 targetTime 才真正点击
          */
         fun schedule(context: Context, hour: Int, minute: Int, second: Int,
-                     buttonText: String, offsetMs: Int = 0) {
+                     buttonText: String, offsetMs: Int = 0, preScanMs: Int = 2000) {
             val alarmManager = context.getSystemService(Context.ALARM_SERVICE) as AlarmManager
 
             val calendar = Calendar.getInstance().apply {
@@ -43,12 +44,15 @@ class AlarmReceiver : BroadcastReceiver() {
                 }
             }
 
-            // 应用提前量补偿：正数 offsetMs = 提前触发
-            val triggerTime = calendar.timeInMillis - offsetMs
+            // 精确目标时间 = 设定时间 - 时钟补偿
+            val targetTime = calendar.timeInMillis - offsetMs
+            // 闹钟触发时间 = 目标时间 - 预扫描提前量（提前唤醒，锁定按钮）
+            val alarmTime = targetTime - preScanMs
 
             val intent = Intent(context, AlarmReceiver::class.java).apply {
                 action = ACTION_TRIGGER
                 putExtra(ClickAccessibilityService.EXTRA_BUTTON_TEXT, buttonText)
+                putExtra(ClickAccessibilityService.EXTRA_TARGET_TIME, targetTime)
             }
 
             val flags = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
@@ -65,24 +69,30 @@ class AlarmReceiver : BroadcastReceiver() {
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
                 alarmManager.setExactAndAllowWhileIdle(
                     AlarmManager.RTC_WAKEUP,
-                    triggerTime,
+                    alarmTime,
                     pendingIntent
                 )
             } else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT) {
                 alarmManager.setExact(
                     AlarmManager.RTC_WAKEUP,
-                    triggerTime,
+                    alarmTime,
                     pendingIntent
                 )
             } else {
                 alarmManager.set(
                     AlarmManager.RTC_WAKEUP,
-                    triggerTime,
+                    alarmTime,
                     pendingIntent
                 )
             }
 
-            Log.d(TAG, "定时闹钟已设置：${calendar.time} → 点击「$buttonText」(提前量: ${offsetMs}ms, 实际触发: ${java.util.Date(triggerTime)})")
+            Log.d(TAG, "定时闹钟已设置：" +
+                    "设定=${java.util.Date(calendar.timeInMillis)} " +
+                    "时补=${offsetMs}ms " +
+                    "预扫提前=${preScanMs}ms " +
+                    "目标点击=${java.util.Date(targetTime)} " +
+                    "闹钟=${java.util.Date(alarmTime)} " +
+                    "按钮「$buttonText」")
 
             // 保存状态
             val pref = context.getSharedPreferences("timed_clicker", Context.MODE_PRIVATE)
@@ -92,8 +102,10 @@ class AlarmReceiver : BroadcastReceiver() {
                 putInt("task_minute", minute)
                 putInt("task_second", second)
                 putString("task_button", buttonText)
-                putLong("task_trigger_time", triggerTime)
+                putLong("task_trigger_time", alarmTime)
+                putLong("task_target_time", targetTime)
                 putInt("task_offset_ms", offsetMs)
+                putInt("task_prescan_ms", preScanMs)
                 apply()
             }
         }
@@ -134,13 +146,15 @@ class AlarmReceiver : BroadcastReceiver() {
         if (intent.action == ACTION_TRIGGER) {
             val buttonText = intent.getStringExtra(ClickAccessibilityService.EXTRA_BUTTON_TEXT)
                 ?: "确定"
+            val targetTime = intent.getLongExtra(ClickAccessibilityService.EXTRA_TARGET_TIME, 0L)
 
-            Log.i(TAG, "⏰ 定时触发！目标按钮：「$buttonText」")
+            Log.i(TAG, "⏰ 定时触发！目标按钮：「$buttonText」，精确点击时间: ${java.util.Date(targetTime)}")
 
-            // 通过无障碍服务执行点击
+            // 通过无障碍服务执行点击（携带 targetTime，服务内部会扫描锁定并等到精确时刻）
             val serviceIntent = Intent(context, ClickAccessibilityService::class.java).apply {
                 action = ClickAccessibilityService.ACTION_FIND_AND_CLICK
                 putExtra(ClickAccessibilityService.EXTRA_BUTTON_TEXT, buttonText)
+                putExtra(ClickAccessibilityService.EXTRA_TARGET_TIME, targetTime)
             }
 
             // 如果服务正在运行，startService 会把 intent 传给 onStartCommand

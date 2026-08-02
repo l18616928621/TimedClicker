@@ -22,9 +22,10 @@ class BootReceiver : BroadcastReceiver() {
             val second = pref.getInt("task_second", 0)
             val buttonText = pref.getString("task_button", "确定") ?: "确定"
             val offsetMs = pref.getInt("task_offset_ms", 0)
+            val preScanMs = pref.getInt("task_prescan_ms", 2000)
 
-            Log.d("TimedClicker.Boot", "恢复定时任务：$hour:$minute:$second → 「$buttonText」(提前量: ${offsetMs}ms)")
-            AlarmReceiver.schedule(context, hour, minute, second, buttonText, offsetMs)
+            Log.d("TimedClicker.Boot", "恢复定时任务：$hour:$minute:$second → 「$buttonText」(补偿: ${offsetMs}ms, 预扫: ${preScanMs}ms)")
+            AlarmReceiver.schedule(context, hour, minute, second, buttonText, offsetMs, preScanMs)
         }
     }
 }
